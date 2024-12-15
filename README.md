@@ -16,3 +16,8 @@ pip install requirements.txt
 ```
 python main.py
 ```
+
+## Example Output
+<p align="center">
+  <img src="images/example_output.png" />
+</p>
