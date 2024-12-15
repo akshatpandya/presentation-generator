@@ -4,44 +4,35 @@ from crewai_tools import PDFSearchTool
 
 class PresentationGeneratorAgents:
 
-  def document_review_agent(self, llm, pdf_rag_search_tool):
+  def content_extractor_agent(self, pdf_content_extractor_tool, pdf_path: str):
     return Agent(
-        role="Lead Research Analyst",
-        goal=dedent("""\
-        Thoroughly read the PDF to understand its content and main messages and highlight the key topics of the document.
-        """),
-        backstory="As a Lead Research Analyst in a premier content developmment firm, you excel at dissecting the data into key insights.",
-        tools=[pdf_rag_search_tool],
-        llm=llm,
-        verbose=True
-    )
-
-  def content_extraction_task_and_summarization_agent(self, llm, pdf_rag_search_tool):
-    return Agent(
-        role="Technical Writer",
-        goal=dedent("""\
-        Given a list of topics, summarize the information in the document for each topic."""),
-        backstory="As a Technical Writer, you excel at gathering the most important information, context, and the gist of large amounts of data and summarize it into bullet points for quick consumption.",
-        tools=[pdf_rag_search_tool],
-        llm=llm,
-        verbose=True
-    )
-
-  def slide_design_agent(self, llm):
-    return Agent(
-        role="Lead Content Creator",
-        goal=dedent("""\
-        Create compelling and accurate content for a presentation."""),
-        backstory="As a lead content creator, you excel at creating compelling content for general audience consumption.",
-        tools=[],
-        llm=llm,
-        verbose=True
+      name="PDF Extractor",
+      role=dedent(f"""\
+          Extracts text content from PDF documents and prepares it for summarization. 
+          Instruction: Use {pdf_path} as the input parameter for the tool.
+      """),
+      backstory="An expert in extracting all the text from PDF documents.",
+      goal="Ensure all relevant text from the PDF is extracted.",
+      tools=[pdf_content_extractor_tool],
+      verbose=True
     )
   
-  def manager(self):
-        return Agent(
-            role="Project Manager",
-            goal="Efficiently manage the crew and ensure high-quality task completion",
-            backstory="You're an experienced project manager, skilled in overseeing complex projects and guiding teams to success. Your role is to coordinate the efforts of the crew members, ensuring that each task is completed on time and to the highest standard.",
-            allow_delegation=True
-        )
+  def content_summarizer_agent(self):
+    return Agent(
+      name="Content Summarizer",
+      role="Summarizes the extracted content into concise, presentation-friendly points.",
+      goal="Generate clean and structured summaries for each section of the PDF.",
+      backstory="An expert in distilling lengthy documents into digestible key points.",
+      tools=[],
+      verbose=True
+    )
+  
+  def slide_creator_agent(self):
+    return Agent(
+      name="Slide Creator",
+      role="reates presentation slides from summarized content.",
+      goal="Transform the summaries into structured presentation slides with headings and bullet points.",
+      backstory="A master at designing well-organized presentation slides.",
+      tools=[],
+      verbose=True
+    )

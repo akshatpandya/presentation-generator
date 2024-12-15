@@ -3,46 +3,49 @@ from textwrap import dedent
 from crewai import Crew, Process
 from agents import PresentationGeneratorAgents
 from tasks import PresentationGeneratorTasks
-from tools import Tools
+from tools.pdf_content_extractor_tool import PDFContentExtractorTool
+from tools.summarize_content_tool import SummarizeContentTool
 from langchain_openai import OpenAI
 
 llm = OpenAI(temperature=0.1, openai_api_key=os.getenv("OPENAI_API_KEY"))
+pdf_path = "/home/akshat/presentation-generator/document.pdf"
 
 tasks = PresentationGeneratorTasks()
 agents = PresentationGeneratorAgents()
-tools = Tools("/home/akshat/presentation-generator/document.pdf")
 
 # Tools
-pdf_rag_tool = tools.rag_tool(llm)
+pdf_content_extractor_tool = PDFContentExtractorTool()
+summarize_content_tool = SummarizeContentTool()
 
 # Create agents
-document_review_agent = agents.document_review_agent(llm, pdf_rag_tool)
-content_extraction_task_and_summarization_agent = agents.content_extraction_task_and_summarization_agent(llm, pdf_rag_tool)
-slide_design_agent = agents.slide_design_agent(llm)
-manager_agent = agents.manager()
+content_extractor_agent = agents.content_extractor_agent(pdf_content_extractor_tool, str(pdf_path))
+content_summarizer_agent = agents.content_summarizer_agent()
+slide_creator_agent = agents.slide_creator_agent()
 
 # Create tasks
-document_review_task = tasks.document_review_task(document_review_agent, "document.pdf")
-content_extraction_task_and_summarization_task = tasks.content_extraction_task_and_summarization(content_extraction_task_and_summarization_agent, "document.pdf")
-slide_design_task = tasks.slide_design_task(slide_design_agent, "document.pdf")
+content_extraction_task = tasks.content_extraction_task(content_extractor_agent)
+content_summarization_task = tasks.content_summarization_task(content_summarizer_agent, summarize_content_tool, [content_extraction_task])
+slide_creator_task = tasks.slide_creator_task(slide_creator_agent, [content_summarization_task])
 
 # Create Crew
 crew = Crew(
     agents=[
-        document_review_agent,
-        content_extraction_task_and_summarization_agent,
-        slide_design_agent
+        content_extractor_agent,
+        content_summarizer_agent,
+        slide_creator_agent,
     ],
     tasks=[
-        document_review_task,
-        content_extraction_task_and_summarization_task,
-        slide_design_task
+        content_extraction_task,
+        content_summarization_task,
+        slide_creator_task
     ],
-    manager_agent=manager_agent,
-    process=Process.hierarchical,
+    process=Process.sequential,
     verbose=True
 )
 
 slide_design_result = crew.kickoff()
 
 print(slide_design_result.raw)
+
+# print("Task output")
+# print(slide_design_result.tasks[0].raw)
